@@ -2,7 +2,7 @@
 
 A full-stack HRMS portal for managing employees and tracking daily attendance.
 
-🔗 **Live Demo:** [https://hrms-a3t7.onrender.com](https://hrms-a3t7.onrender.com)
+🔗 **Live Demo:** [https://kaleidoscopic-melomakarona-33e0e1.netlify.app/](https://kaleidoscopic-melomakarona-33e0e1.netlify.app/)
 
 ---
 
