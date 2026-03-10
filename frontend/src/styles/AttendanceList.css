@@ -1,0 +1,232 @@
+/* Attendance List Styles */
+.attendance-list {
+  padding: 1.5rem;
+}
+
+.attendance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.employee-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.employee-icon {
+  width: 48px;
+  height: 48px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.employee-info h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--dark-color);
+  margin-bottom: 0.25rem;
+}
+
+.employee-id {
+  font-size: 0.875rem;
+  color: var(--secondary-color);
+  font-family: monospace;
+}
+
+.attendance-summary {
+  display: flex;
+  gap: 2rem;
+  background-color: #f8fafc;
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-lg);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  color: var(--secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--dark-color);
+}
+
+.summary-value.present {
+  color: var(--success-color);
+}
+
+.summary-value.absent {
+  color: var(--danger-color);
+}
+
+/* Attendance Table */
+.attendance-table-container {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.attendance-table thead {
+  background-color: #f8fafc;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.attendance-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--dark-color);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.attendance-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.attendance-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.attendance-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Cell Styles */
+.date-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.date-day {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--dark-color);
+  line-height: 1;
+}
+
+.date-month {
+  font-size: 0.75rem;
+  color: var(--secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.date-year {
+  font-size: 0.75rem;
+  color: var(--secondary-color);
+}
+
+.day-name {
+  font-size: 0.875rem;
+  color: var(--dark-color);
+  font-weight: 500;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-present {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-absent {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.attendance-employee-id {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: var(--secondary-color);
+}
+
+/* Empty State */
+.attendance-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.attendance-empty .empty-icon {
+  font-size: 3rem;
+  color: var(--secondary-color);
+  margin-bottom: 1rem;
+}
+
+.attendance-empty p {
+  color: var(--secondary-color);
+  font-size: 0.875rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .attendance-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .attendance-summary {
+    width: 100%;
+    justify-content: space-around;
+  }
+  
+  .summary-item {
+    flex: 1;
+  }
+  
+  .attendance-table th,
+  .attendance-table td {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .attendance-summary {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
