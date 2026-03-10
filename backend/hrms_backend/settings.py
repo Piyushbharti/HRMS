@@ -15,6 +15,7 @@ ALLOWED_HOSTS = ['*']
 INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.auth',
+    'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
     'hrms',
@@ -23,11 +24,17 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'hrms_backend.urls'
 
 WSGI_APPLICATION = 'hrms_backend.wsgi.application'
+
+# ---------- STATIC FILES ----------
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # ---------- DATABASE (PostgreSQL) ----------
 # Uses dj-database-url to parse DATABASE_URL (handles special chars in passwords)
