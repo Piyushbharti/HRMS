@@ -4,13 +4,17 @@ import { format } from 'date-fns';
 import { attendanceAPI, employeeAPI } from '../services/api';
 import AttendanceForm from '../components/AttendanceForm';
 import AttendanceList from '../components/AttendanceList';
-import { FaCalendarAlt, FaListAlt } from 'react-icons/fa';
+import { FaCalendarAlt, FaListAlt, FaCalendarDay } from 'react-icons/fa';
+import parseApiError from '../utils/errorParser';
+import SkeletonLoader from '../components/ui/SkeletonLoader';
+import { useNavigate } from 'react-router-dom';
 
 function AttendanceManagement() {
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => { fetchEmployees(); }, []);
 
@@ -19,7 +23,7 @@ function AttendanceManagement() {
       const res = await employeeAPI.getAll();
       setEmployees(res.data);
     } catch (err) {
-      toast.error('Failed to fetch employees');
+      toast.error(parseApiError(err));
     }
   };
 
@@ -30,7 +34,7 @@ function AttendanceManagement() {
       const res = await attendanceAPI.getByEmployee(employeeId);
       setAttendance(res.data);
     } catch (err) {
-      toast.error('Failed to fetch attendance');
+      toast.error(parseApiError(err));
     } finally {
       setLoading(false);
     }
@@ -39,9 +43,10 @@ function AttendanceManagement() {
   const handleMarkAttendance = async (data) => {
     try {
       await attendanceAPI.mark(data);
-      toast.success('Attendance marked!');
+      toast.success('Attendance marked successfully!');
       if (data.employee_id === selectedEmployee) fetchAttendance(selectedEmployee);
     } catch (err) {
+      // Re-throw so AttendanceForm can catch and display in its own try/catch
       throw err;
     }
   };
@@ -51,16 +56,26 @@ function AttendanceManagement() {
     fetchAttendance(empId);
   };
 
+  const selectedEmpObj = employees.find(e => e.employee_id === selectedEmployee);
+
   return (
     <div>
       <div className="section-header">
         <div className="section-title-group">
           <div className="section-title">
-            <span className="title-accent"></span>
+            <span className="title-accent" />
             Attendance
           </div>
           <div className="section-subtitle">Track and manage daily attendance records</div>
         </div>
+        <button
+          className="btn-ghost"
+          onClick={() => navigate('/attendance/date')}
+          style={{ display: 'flex', alignItems: 'center', gap: '7px' }}
+        >
+          <FaCalendarDay />
+          Date View
+        </button>
       </div>
 
       <div className="split-layout">
@@ -70,6 +85,9 @@ function AttendanceManagement() {
             <span className="card-title">
               <span className="card-icon purple"><FaCalendarAlt /></span>
               Mark Attendance
+            </span>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              {format(new Date(), 'MMM d, yyyy')}
             </span>
           </div>
           <div className="card-body">
@@ -104,7 +122,9 @@ function AttendanceManagement() {
           </div>
 
           {loading ? (
-            <div className="spinner-wrap"><div className="ring"></div></div>
+            <div style={{ padding: '16px' }}>
+              <SkeletonLoader rows={5} type="table" />
+            </div>
           ) : !selectedEmployee ? (
             <div className="empty-panel">
               <div className="empty-icon-wrap">📋</div>
@@ -118,7 +138,7 @@ function AttendanceManagement() {
               <div className="empty-desc">No attendance has been marked for this employee yet</div>
             </div>
           ) : (
-            <AttendanceList attendance={attendance} />
+            <AttendanceList attendance={attendance} employee={selectedEmpObj} employees={employees} />
           )}
         </div>
       </div>

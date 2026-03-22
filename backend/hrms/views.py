@@ -1,12 +1,21 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.db import DatabaseError, OperationalError
 from .models import Employee, Attendance
 from .serializers import (
     EmployeeSerializer,
     EmployeeWithAttendanceSerializer,
     AttendanceSerializer,
 )
+
+
+def db_error_response(exc):
+    """Return a clean 503 JSON response for database/connection errors."""
+    return Response(
+        {"detail": "Database is temporarily unavailable. Please try again in a moment."},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
 
 
 # ---------- HEALTH ----------
@@ -18,7 +27,15 @@ class RootView(APIView):
 
 class HealthView(APIView):
     def get(self, request):
-        return Response({"status": "healthy"})
+        try:
+            # Quick DB ping
+            Employee.objects.exists()
+            return Response({"status": "healthy"})
+        except (DatabaseError, OperationalError):
+            return Response(
+                {"status": "degraded", "detail": "Database unreachable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
 
 # ---------- EMPLOYEE ----------
@@ -30,24 +47,28 @@ class EmployeeListView(APIView):
     """
 
     def get(self, request):
-        employees = Employee.objects.all()
-        serializer = EmployeeSerializer(employees, many=True)
-        return Response(serializer.data)
+        try:
+            employees = Employee.objects.all()
+            serializer = EmployeeSerializer(employees, many=True)
+            return Response(serializer.data)
+        except (DatabaseError, OperationalError) as e:
+            return db_error_response(e)
 
     def post(self, request):
-        serializer = EmployeeSerializer(data=request.data)
-        if serializer.is_valid():
-            # Manual duplicate employee_id check (serializer unique check on model field handles it,
-            # but keep explicit error message consistent with old API)
-            emp_id = serializer.validated_data['employee_id']
-            if Employee.objects.filter(employee_id=emp_id).exists():
-                return Response(
-                    {"detail": f"Employee ID {emp_id} already exists"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = EmployeeSerializer(data=request.data)
+            if serializer.is_valid():
+                emp_id = serializer.validated_data['employee_id']
+                if Employee.objects.filter(employee_id=emp_id).exists():
+                    return Response(
+                        {"detail": f"Employee ID '{emp_id}' already exists"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except (DatabaseError, OperationalError) as e:
+            return db_error_response(e)
 
 
 class EmployeeDetailView(APIView):
@@ -63,26 +84,31 @@ class EmployeeDetailView(APIView):
             return None
 
     def get(self, request, employee_id):
-        employee = self._get_employee(employee_id)
-        if not employee:
-            return Response(
-                {"detail": "Employee not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        serializer = EmployeeWithAttendanceSerializer(employee)
-        return Response(serializer.data)
+        try:
+            employee = self._get_employee(employee_id)
+            if not employee:
+                return Response(
+                    {"detail": "Employee not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            serializer = EmployeeWithAttendanceSerializer(employee)
+            return Response(serializer.data)
+        except (DatabaseError, OperationalError) as e:
+            return db_error_response(e)
 
     def delete(self, request, employee_id):
-        employee = self._get_employee(employee_id)
-        if not employee:
-            return Response(
-                {"detail": f"Employee with ID {employee_id} not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        # Delete attendance records first, then employee
-        Attendance.objects.filter(employee_id=employee_id).delete()
-        employee.delete()
-        return Response({"message": "Employee deleted successfully"})
+        try:
+            employee = self._get_employee(employee_id)
+            if not employee:
+                return Response(
+                    {"detail": f"Employee with ID '{employee_id}' not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            Attendance.objects.filter(employee_id=employee_id).delete()
+            employee.delete()
+            return Response({"message": "Employee deleted successfully"})
+        except (DatabaseError, OperationalError) as e:
+            return db_error_response(e)
 
 
 # ---------- ATTENDANCE ----------
@@ -106,9 +132,12 @@ class AttendanceByEmployeeView(APIView):
     """
 
     def get(self, request, employee_id):
-        records = Attendance.objects.filter(employee_id=employee_id)
-        serializer = AttendanceSerializer(records, many=True)
-        return Response(serializer.data)
+        try:
+            records = Attendance.objects.filter(employee_id=employee_id)
+            serializer = AttendanceSerializer(records, many=True)
+            return Response(serializer.data)
+        except (DatabaseError, OperationalError) as e:
+            return db_error_response(e)
 
 
 class AttendanceByDateView(APIView):
@@ -117,6 +146,9 @@ class AttendanceByDateView(APIView):
     """
 
     def get(self, request, attendance_date):
-        records = Attendance.objects.filter(date=attendance_date)
-        serializer = AttendanceSerializer(records, many=True)
-        return Response(serializer.data)
+        try:
+            records = Attendance.objects.filter(date=attendance_date)
+            serializer = AttendanceSerializer(records, many=True)
+            return Response(serializer.data)
+        except (DatabaseError, OperationalError) as e:
+            return db_error_response(e)

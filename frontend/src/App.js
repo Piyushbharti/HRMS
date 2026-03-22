@@ -6,12 +6,14 @@ import './styles/App.css';
 
 import EmployeeManagement from './pages/EmployeeManagement';
 import AttendanceManagement from './pages/AttendanceManagement';
+import AttendanceDateView from './pages/AttendanceDateView';
 import Dashboard from './pages/Dashboard';
 
 const PAGE_META = {
   '/': { label: 'Dashboard', path: 'Home / Dashboard' },
   '/employees': { label: 'Employees', path: 'Home / Employees' },
   '/attendance': { label: 'Attendance', path: 'Home / Attendance' },
+  '/attendance/date': { label: 'Date View', path: 'Home / Attendance / Date View' },
 };
 
 function AppShell() {
@@ -45,15 +47,22 @@ function AppShell() {
             <span className="nav-label">Employees</span>
           </NavLink>
 
-          <NavLink to="/attendance" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+          <div className="nav-section-label" style={{ marginTop: '8px' }}>Attendance</div>
+
+          <NavLink to="/attendance" end className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
             <span className="nav-icon">📅</span>
-            <span className="nav-label">Attendance</span>
+            <span className="nav-label">Mark Attendance</span>
+          </NavLink>
+
+          <NavLink to="/attendance/date" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <span className="nav-icon">📊</span>
+            <span className="nav-label">Date View</span>
           </NavLink>
         </nav>
 
         <div className="sidebar-footer">
           <div className="sys-status">
-            <div className="status-dot"></div>
+            <div className="status-dot" />
             <span className="status-text">All systems online</span>
           </div>
         </div>
@@ -76,13 +85,14 @@ function AppShell() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/employees" element={<EmployeeManagement />} />
             <Route path="/attendance" element={<AttendanceManagement />} />
+            <Route path="/attendance/date" element={<AttendanceDateView />} />
           </Routes>
         </main>
       </div>
 
       <ToastContainer
         position="bottom-right"
-        autoClose={3000}
+        autoClose={3500}
         toastStyle={{ fontFamily: 'Inter, sans-serif', fontSize: '13.5px', borderRadius: '12px' }}
       />
     </div>

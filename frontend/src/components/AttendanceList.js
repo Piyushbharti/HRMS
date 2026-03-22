@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { format, parseISO, isToday, isYesterday, isThisWeek, isSameMonth } from 'date-fns';
-import { FaCalendarCheck, FaCalendarTimes, FaSearch, FaFilter, FaDownload } from 'react-icons/fa';
+import { FaCalendarCheck, FaSearch, FaDownload } from 'react-icons/fa';
 
-function AttendanceList({ attendance, employee }) {
+function AttendanceList({ attendance, employee, employees = [] }) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterRange, setFilterRange] = useState('all');
   const [sortDir, setSortDir] = useState('desc');
+
+  // Build employee lookup for name resolution
+  const empMap = {};
+  employees.forEach(e => { empMap[e.employee_id] = e; });
 
   if (!attendance || attendance.length === 0) {
     return (
@@ -25,7 +29,9 @@ function AttendanceList({ attendance, employee }) {
 
   const filtered = attendance
     .filter(r => {
-      if (search && !r.employee_id.toLowerCase().includes(search.toLowerCase())) return false;
+      const resolvedName = empMap[r.employee_id]?.full_name || '';
+      const q = search.toLowerCase();
+      if (q && !r.employee_id.toLowerCase().includes(q) && !resolvedName.toLowerCase().includes(q)) return false;
       if (filterStatus && r.status !== filterStatus) return false;
       const d = parseISO(r.date);
       switch (filterRange) {
@@ -43,8 +49,14 @@ function AttendanceList({ attendance, employee }) {
 
   const handleExport = () => {
     const csv = [
-      ['Date', 'Day', 'Employee ID', 'Status'],
-      ...attendance.map(r => [r.date, format(parseISO(r.date), 'EEEE'), r.employee_id, r.status])
+      ['Date', 'Day', 'Employee ID', 'Employee Name', 'Status'],
+      ...attendance.map(r => [
+        r.date,
+        format(parseISO(r.date), 'EEEE'),
+        r.employee_id,
+        empMap[r.employee_id]?.full_name || r.employee_id,
+        r.status
+      ])
     ].map(row => row.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
@@ -66,7 +78,7 @@ function AttendanceList({ attendance, employee }) {
           <div className="att-stat-lbl">Present</div>
         </div>
         <div className="att-stat">
-          <div className="att-stat-val gray">{absentDays}</div>
+          <div className="att-stat-val red">{absentDays}</div>
           <div className="att-stat-lbl">Absent</div>
         </div>
         <div className="att-stat">
@@ -81,7 +93,7 @@ function AttendanceList({ attendance, employee }) {
           <FaSearch />
           <input
             className="ctrl-input"
-            placeholder="Search by employee ID..."
+            placeholder="Search by name or ID..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -132,6 +144,7 @@ function AttendanceList({ attendance, employee }) {
             {filtered.map(r => {
               const d = parseISO(r.date);
               const todayRow = isToday(d);
+              const resolvedName = empMap[r.employee_id]?.full_name;
               return (
                 <tr key={`${r.employee_id}-${r.date}`} style={todayRow ? { background: '#faf5ff' } : {}}>
                   <td>
@@ -142,10 +155,20 @@ function AttendanceList({ attendance, employee }) {
                     </div>
                   </td>
                   <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{format(d, 'EEEE')}</td>
-                  <td><span className="emp-id-pill">{r.employee_id}</span></td>
+                  <td>
+                    <div className="emp-cell">
+                      <div className="avatar" style={{ width: '28px', height: '28px', fontSize: '11px' }}>
+                        {(resolvedName || r.employee_id).charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        {resolvedName && <div style={{ fontWeight: 600, fontSize: '13px' }}>{resolvedName}</div>}
+                        <span className="emp-id-pill" style={{ fontSize: '11px' }}>{r.employee_id}</span>
+                      </div>
+                    </div>
+                  </td>
                   <td>
                     <span className={`status-pill ${r.status === 'Present' ? 'present' : 'absent'}`}>
-                      <span className={`dot ${r.status === 'Present' ? 'green' : 'red'}`}></span>
+                      <span className={`dot ${r.status === 'Present' ? 'green' : 'red'}`} />
                       {r.status}
                     </span>
                   </td>

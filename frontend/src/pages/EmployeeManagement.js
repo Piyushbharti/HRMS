@@ -4,11 +4,15 @@ import { employeeAPI } from '../services/api';
 import EmployeeForm from '../components/EmployeeForm';
 import EmployeeList from '../components/EmployeeList';
 import { FaPlus, FaUsers } from 'react-icons/fa';
+import SkeletonLoader from '../components/ui/SkeletonLoader';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import parseApiError from '../utils/errorParser';
 
 function EmployeeManagement() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, name }
 
   useEffect(() => { fetchEmployees(); }, []);
 
@@ -18,7 +22,7 @@ function EmployeeManagement() {
       const res = await employeeAPI.getAll();
       setEmployees(res.data);
     } catch (err) {
-      toast.error('Failed to fetch employees');
+      toast.error(parseApiError(err));
     } finally {
       setLoading(false);
     }
@@ -31,20 +35,27 @@ function EmployeeManagement() {
       setShowForm(false);
       fetchEmployees();
     } catch (err) {
-      const msg = err.response?.data?.detail || Object.values(err.response?.data || {})[0]?.[0] || 'Failed to add employee';
+      const msg = parseApiError(err);
       toast.error(msg);
       throw err;
     }
   };
 
-  const handleDelete = async (empId) => {
-    if (!window.confirm(`Delete employee ${empId}? This will also remove their attendance records.`)) return;
+  const confirmDelete = (empId) => {
+    const emp = employees.find(e => e.employee_id === empId);
+    setDeleteTarget({ id: empId, name: emp?.full_name || empId });
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!deleteTarget) return;
     try {
-      await employeeAPI.delete(empId);
-      toast.success('Employee removed');
+      await employeeAPI.delete(deleteTarget.id);
+      toast.success(`${deleteTarget.name} has been removed`);
       fetchEmployees();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Delete failed');
+      toast.error(parseApiError(err));
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -53,7 +64,7 @@ function EmployeeManagement() {
       <div className="section-header">
         <div className="section-title-group">
           <div className="section-title">
-            <span className="title-accent"></span>
+            <span className="title-accent" />
             Employees
           </div>
           <div className="section-subtitle">Manage your workforce records</div>
@@ -90,12 +101,26 @@ function EmployeeManagement() {
             <span className="count-badge">{employees.length} total</span>
           </div>
           {loading ? (
-            <div className="spinner-wrap"><div className="ring"></div></div>
+            <div style={{ padding: '16px' }}>
+              <SkeletonLoader rows={5} type="table" />
+            </div>
           ) : (
-            <EmployeeList employees={employees} onDelete={handleDelete} />
+            <EmployeeList employees={employees} onDelete={confirmDelete} />
           )}
         </div>
       </div>
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete Employee"
+        message={`Remove "${deleteTarget?.name}"? All their attendance records will also be deleted.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        variant="danger"
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

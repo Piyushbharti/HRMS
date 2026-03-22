@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import { FaCheckCircle, FaTimesCircle, FaUser, FaCalendarAlt, FaSave } from 'react-icons/fa';
 import { attendanceAPI } from '../services/api';
+import parseApiError from '../utils/errorParser';
 
 function AttendanceForm({ employees, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -28,17 +29,19 @@ function AttendanceForm({ employees, onSuccess }) {
   const presentCount = todayAtt.filter(r => r.status === 'Present').length;
   const absentCount  = todayAtt.filter(r => r.status === 'Absent').length;
 
-  const parseError = (err) => {
-    const d = err.response?.data;
-    if (!d) return 'Something went wrong';
-    if (typeof d === 'string') return d;
-    if (d.detail) return d.detail;
-    return Object.entries(d).map(([f, m]) => `${f}: ${Array.isArray(m) ? m[0] : m}`).join(' | ');
-  };
+  // Build labeled lists for already-marked
+  const empMap = {};
+  employees.forEach(e => { empMap[e.employee_id] = e; });
+  const presentNames = todayAtt
+    .filter(r => r.status === 'Present')
+    .map(r => (empMap[r.employee_id]?.full_name || r.employee_id));
+  const absentNames = todayAtt
+    .filter(r => r.status === 'Absent')
+    .map(r => (empMap[r.employee_id]?.full_name || r.employee_id));
 
   const validate = () => {
     const e = {};
-    if (!formData.employee_id) e.employee_id = 'Select an employee';
+    if (!formData.employee_id) e.employee_id = 'Please select an employee';
     if (!formData.date) e.date = 'Date is required';
     return e;
   };
@@ -51,18 +54,20 @@ function AttendanceForm({ employees, onSuccess }) {
 
   const submit = async (data) => {
     const alreadyMarked = todayAtt.find(r => r.employee_id === data.employee_id);
-    if (alreadyMarked) { toast.error('Attendance already marked for today'); return; }
+    if (alreadyMarked) {
+      toast.error('Attendance already marked for this employee today');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await onSuccess(data);
       setFormData({ employee_id: '', date: format(new Date(), 'yyyy-MM-dd'), status: 'Present' });
       setErrors({});
-      toast.success('Attendance marked!');
-      // refresh today
+      // Refresh today's records
       const r = await attendanceAPI.getByDate(data.date);
       setTodayAtt(r.data);
     } catch (err) {
-      toast.error(parseError(err));
+      toast.error(parseApiError(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -76,7 +81,7 @@ function AttendanceForm({ employees, onSuccess }) {
   };
 
   const quickMark = (status) => {
-    if (!formData.employee_id) { toast.error('Select an employee first'); return; }
+    if (!formData.employee_id) { toast.warning('Please select an employee first'); return; }
     submit({ ...formData, status });
   };
 
@@ -88,12 +93,12 @@ function AttendanceForm({ employees, onSuccess }) {
           <div className="att-stat-val purple">{employees.length}</div>
           <div className="att-stat-lbl">Total</div>
         </div>
-        <div className="att-stat">
+        <div className="att-stat" title={presentNames.join(', ') || 'None'}>
           <div className="att-stat-val green">{presentCount}</div>
           <div className="att-stat-lbl">Present</div>
         </div>
-        <div className="att-stat">
-          <div className="att-stat-val gray">{absentCount}</div>
+        <div className="att-stat" title={absentNames.join(', ') || 'None'}>
+          <div className="att-stat-val red">{absentCount}</div>
           <div className="att-stat-lbl">Absent</div>
         </div>
         <div className="att-stat">
@@ -167,8 +172,12 @@ function AttendanceForm({ employees, onSuccess }) {
         </div>
       )}
 
-      <button type="submit" className="btn-primary" disabled={isSubmitting || available.length === 0}
-        style={{ width: '100%', justifyContent: 'center', marginTop: '4px' }}>
+      <button
+        type="submit"
+        className="btn-primary"
+        disabled={isSubmitting || available.length === 0}
+        style={{ width: '100%', justifyContent: 'center', marginTop: '4px' }}
+      >
         <FaSave />
         {isSubmitting ? 'Saving...' : 'Save Attendance'}
       </button>
